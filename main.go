@@ -19,28 +19,35 @@ func main() {
 }
 
 func uploadFile(ctx *gin.Context) {
-	file, _ := ctx.FormFile("file")
-	log.Println(file.Filename)
+	file, err := ctx.FormFile("file")
+	if err != nil {
+		log.Println(err)
+	} 
 
+	path := makePath(file.Filename)
+
+	er := os.Mkdir(path, os.ModePerm)
+	if er != nil {
+		log.Println(er)
+	}
+
+	ctx.SaveUploadedFile(file, path)
+	ctx.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", path))
+}
+
+func makePath(filename string) string {
 	year := time.Now().Year()
 	month := time.Now().Month().String()
 	day := time.Now().Day()
-
-	path := strconv.Itoa(year) + "/" + month + "/" + strconv.Itoa(day) + "/"
-
-	err := os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		log.Println(err)
-	}
-
-	ctx.SaveUploadedFile(file, path+file.Filename)
-	ctx.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", path+file.Filename))
+	return strconv.Itoa(year) + "/" + month + "/" + strconv.Itoa(day) + "/" + filename
 }
 
 func downloadFile(ctx *gin.Context) {
 	path := ctx.Query("path")
-	file, _ := os.Open(path)
-	defer file.Close()
-	
+	file, err := os.Open(path)
+	if err != nil {
+		log.Println(err)
+	}
+	defer file.Close()	
 	ctx.File(path)
 }
